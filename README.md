@@ -15,7 +15,10 @@
 使用 ARMv7-M_DWT 软件包需要在 RT-Thread 的包管理中选中它，具体路径如下：
 
 ```shell
-...
+    RT-Thread online packages
+        miscellaneous packages --->
+            [*] armv7m_dwt: High precision timing and delay --->
+                Version (latest) --->
 ```
 
 **Version**：软件包版本选择
