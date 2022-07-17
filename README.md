@@ -1,5 +1,7 @@
 # ARMv7-M_DWT
 
+ToDo: 长时长测量支持
+
 ## 简介
 
 本软件包基于 ARMv7-M Debug 架构中 DWT 计数器而提供了高精度延时 和 计时功能 （精度：1 / processor-clock)
@@ -37,7 +39,9 @@ _e.g. 对于 STM32 系列 HAL 库 ``` dwt_init(HAL_RCC_GetSysClockFreq()) ```_
 
 ## 注意事项
 
-The function can't work when the processor is halted in Debug state.
+* 不能并发使用, 除非你知道在干什么
+
+* The function can't work when the processor is halted in Debug state.
 
 ## 联系人信息
 
