@@ -2,6 +2,8 @@
 
 ToDo: 长时长测量支持
 
+Note: ARMv7m Architecture Reference Manual (Chapter ARMv7-M Debug)
+
 ## 简介
 
 本软件包基于 ARMv7-M Debug 架构中 DWT 计数器而提供了高精度延时 和 计时功能 （精度：1 / processor-clock)，可用于benchmark等
