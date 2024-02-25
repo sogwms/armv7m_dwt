@@ -75,6 +75,11 @@ uint32_t dwt_get_count(void)
     return *((uint32_t *)DWT_CYCCNT_REG_ADDR);
 }
 
+static void dwt_set_count(uint32_t val)
+{
+    return *((uint32_t *)DWT_CYCCNT_REG_ADDR) = val;
+}
+
 void dwt_enable_cyccnt(void)
 {
     // Global enable for DWT and ITM features
@@ -163,6 +168,10 @@ int dwt_init(uint32_t frquency)
     // {
     //     LOG_I("Comparator is supported");
     // }
+
+    // Disable DWT counter And then clear counter value (to be zero)
+    dwt_disable_cyccnt();
+    dwt_set_count(0);
 
     // Enable DWT count
     dwt_enable_cyccnt();
