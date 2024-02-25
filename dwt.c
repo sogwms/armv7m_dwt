@@ -22,8 +22,6 @@
 #define DBG_LEVEL           DBG_LOG
 #include <rtdbg.h>
 
-#define UINT32_MAX_VALUE    (0xFFFFFFFFUL)
-
 // register
 #define ROM_TABLE_ENTRY             ((uint32_t)0xE00FF000)
 #define DEMCR_REG_ADDR              ((uint32_t)0xE000EDFC)
@@ -57,10 +55,7 @@ static uint32_t tick_measure;
 
 rt_inline uint32_t get_diff(uint32_t t1, uint32_t t2)
 {
-    int64_t t = t2 - t1;
-    if (t < 0)
-        t += UINT32_MAX_VALUE;
-    return t;
+    return (uint32_t)((int32_t)t2 - (int32_t)t1);
 }
 
 float dwt_set_frequency(uint32_t frquency)
