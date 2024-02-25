@@ -77,7 +77,7 @@ uint32_t dwt_get_count(void)
 
 static void dwt_set_count(uint32_t val)
 {
-    return *((uint32_t *)DWT_CYCCNT_REG_ADDR) = val;
+    *((uint32_t *)DWT_CYCCNT_REG_ADDR) = val;
 }
 
 void dwt_enable_cyccnt(void)
