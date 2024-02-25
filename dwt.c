@@ -6,10 +6,14 @@
  * Change Logs:
  * Date           Author       Notes
  * 2019-08-24     sogwms       the first version
+ * 2024-02-25     sogwms       optimize internal implementations
  */
 
 // TODO
 // support COMPARATOR0
+
+// Note: The DWT cycle counter is a 32-bit counter which increase one on each processor clock cycle. On overflow, it wraps to zero.
+// Cons: The counter can't work when the processor is halted in Debug state.
 
 #include <rtthread.h>
 #include "dwt.h"
@@ -19,6 +23,34 @@
 #include <rtdbg.h>
 
 #define UINT32_MAX_VALUE    (0xFFFFFFFFUL)
+
+// register
+#define ROM_TABLE_ENTRY             ((uint32_t)0xE00FF000)
+#define DEMCR_REG_ADDR              ((uint32_t)0xE000EDFC)
+
+#define DWT_CTRL_REG_ADDR           ((uint32_t)0xE0001000)
+#define DWT_CYCCNT_REG_ADDR         ((uint32_t)0xE0001004)
+#define DWT_CPICNT_REG_ADDR         ((uint32_t)0xE0001008)
+#define DWT_EXCCNT_REG_ADDR         ((uint32_t)0xE000100C)
+#define DWT_SLEEPCNT_REG_ADDR       ((uint32_t)0xE0001010)
+#define DWT_LSUCNT_REG_ADDR         ((uint32_t)0xE0001014)
+#define DWT_FOLDCNT_REG_ADDR        ((uint32_t)0xE0001018)
+#define DWT_PCSR_REG_ADDR           ((uint32_t)0xE000101C)
+
+#define DWT_COMP_0_REG_ADDR         ((uint32_t)0xE0001020)
+#define DWT_MASK_0_REG_ADDR         ((uint32_t)0xE0001024)
+#define DWT_FUNCTION_0_REG_ADDR     ((uint32_t)0xE0001028)
+
+// mask
+#define DEMCR_MASK_TRCENA           ((uint32_t)(0x01UL << 24))
+#define DWT_MASK_CTRL_NUMCOMP       ((uint32_t)(0x0FUL << 28))
+#define DWT_MASK_CTRL_NOCYCCNT      ((uint32_t)(0x01UL << 25))
+#define DWT_MASK_CTRL_CYCCNTENA     ((uint32_t)(0x01UL << 0))
+#define DWT_MASK_FUNCTION_CYCMATCH  ((uint32_t)(0x01UL << 7))
+#define DWT_MASK_FUNCTION_MATCHED   ((uint32_t)(0x01UL << 24))
+
+// offset
+#define ROMDWT_OFFSET               (0x004)
 
 static float tick_to_ns = 0.0f;
 static uint32_t tick_measure;
@@ -50,6 +82,9 @@ uint32_t dwt_get_count(void)
 
 void dwt_enable_cyccnt(void)
 {
+    // Global enable for DWT and ITM features
+    *(uint32_t *)DEMCR_REG_ADDR |= DEMCR_MASK_TRCENA;
+
     *(uint32_t *)DWT_CTRL_REG_ADDR |= DWT_MASK_CTRL_CYCCNTENA;
     LOG_I("Cycle counter enabled");
 }
@@ -89,28 +124,35 @@ uint32_t dwt_measure_end(void)
     return get_diff(tick_measure, dwt_get_count());
 }
 
-int dwt_init(uint32_t frquency)
+static int has_dwt(void) 
 {
-    uint32_t tmp;
-
     if (!(*(uint32_t *)(ROM_TABLE_ENTRY + ROMDWT_OFFSET) & 1))
     {
-        LOG_E("DWT is not present!");
-        return RT_ERROR;
+        return 0;
     }
-    LOG_I("DWT is present");
 
-    // Global enable for DWT and ITM features
-    *(uint32_t *)DEMCR_REG_ADDR |= DEMCR_MASK_TRCENA;
-    LOG_I("Enable DWT and ITM units");
+    return 1;
+}
 
-    tmp = *(uint32_t *)(DWT_CTRL_REG_ADDR);
+static int has_cycle_counter(void)
+{
+    uint32_t tmp = *(uint32_t *)(DWT_CTRL_REG_ADDR);
 
     if (tmp & DWT_MASK_CTRL_NOCYCCNT)
     {
-        LOG_E("Cycle counter is not supported!");
+        return 0;
+    }
+
+    return 1;
+}
+
+int dwt_init(uint32_t frquency)
+{
+    if (!(has_dwt() && has_cycle_counter())) {
+        LOG_E("The chip doesn't support needed features (DWT or DWT cycle-counter)");
         return RT_ERROR;
     }
+    LOG_I("The chip supports needed features");
 
     if (frquency == 0)
     {
